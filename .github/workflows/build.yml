@@ -1,0 +1,117 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: win-x64
+            ext: .exe
+            node_target: node20-win-x64
+          - os: macos-13
+            target: macos-x64
+            ext: ""
+            node_target: node20-macos-x64
+          - os: macos-latest
+            target: macos-arm64
+            ext: ""
+            node_target: node20-macos-arm64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Compile TypeScript
+        run: npx tsc
+
+      - name: Generate SEA blob
+        run: node --experimental-sea-config sea-config.json
+
+      - name: Create executable (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          Copy-Item (Get-Command node).Source -Destination "agentrouter-proxy.exe"
+          npx postject agentrouter-proxy.exe NODE_SEA_BLOB sea-prep.blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
+
+      - name: Create executable (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          cp $(which node) agentrouter-proxy
+          chmod 755 agentrouter-proxy
+          npx postject agentrouter-proxy NODE_SEA_BLOB sea-prep.blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2 --macho-segment-name NODE_SEA
+          codesign --sign - agentrouter-proxy
+
+      - name: Package (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path release
+          Copy-Item agentrouter-proxy.exe release/
+          Copy-Item README.md release/README.txt
+          Compress-Archive -Path release/* -DestinationPath "agentrouter-proxy-${{ matrix.target }}.zip"
+
+      - name: Package (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          mkdir release
+          cp agentrouter-proxy release/
+          cp README.md release/README.txt
+          cd release && tar -czf "../agentrouter-proxy-${{ matrix.target }}.tar.gz" *
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentrouter-proxy-${{ matrix.target }}
+          path: agentrouter-proxy-${{ matrix.target }}.*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: find artifacts -type f || ls -R artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          body: |
+            ## 📦 Скачай под свою платформу
+
+            | Платформа | Файл |
+            |-----------|------|
+            | **Windows x64** | `agentrouter-proxy-win-x64.zip` |
+            | **macOS Intel** | `agentrouter-proxy-macos-x64.tar.gz` |
+            | **macOS Apple Silicon (M1/M2/M3)** | `agentrouter-proxy-macos-arm64.tar.gz` |
+
+            ### Быстрый старт
+            1. Скачай и распакуй архив
+            2. Запусти `agentrouter-proxy` (macOS) или `agentrouter-proxy.exe` (Windows)
+            3. В приложении: Base URL = `http://localhost:3001/v1`, API Key = `sk-...`
+
+            Подробнее в [README](../../#readme)
+          generate_release_notes: false
