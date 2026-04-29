@@ -17,10 +17,6 @@ jobs:
             target: win-x64
             ext: .exe
             node_target: node20-win-x64
-          - os: macos-13
-            target: macos-x64
-            ext: ""
-            node_target: node20-macos-x64
           - os: macos-latest
             target: macos-arm64
             ext: ""
@@ -105,7 +101,6 @@ jobs:
             | Платформа | Файл |
             |-----------|------|
             | **Windows x64** | `agentrouter-proxy-win-x64.zip` |
-            | **macOS Intel** | `agentrouter-proxy-macos-x64.tar.gz` |
             | **macOS Apple Silicon (M1/M2/M3)** | `agentrouter-proxy-macos-arm64.tar.gz` |
 
             ### Быстрый старт
