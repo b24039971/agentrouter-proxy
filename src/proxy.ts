@@ -210,7 +210,7 @@ async function main() {
     // CORS preflight
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': '*', // NOSONAR - localhost-only proxy
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       });
@@ -263,7 +263,7 @@ async function main() {
         successRequests++;
         console.log(`  ${c.dim}${ts}${c.reset} ${c.green}#${reqNum} ← ${r.status} OK${c.reset} ${c.dim}(${r.body.length}b)${c.reset}`);
       }
-      res.writeHead(r.status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.writeHead(r.status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }); // NOSONAR - localhost-only proxy
       res.end(r.body);
       return;
     }
@@ -302,7 +302,7 @@ async function main() {
           if (p.usage) usage = ` ${c.dim}${p.usage.prompt_tokens}→${p.usage.completion_tokens} tok${c.reset}`;
         } catch {}
         console.log(`  ${c.dim}${ts}${c.reset} ${c.green}#${reqNum} ← ${r.status} OK${c.reset} ${c.dim}(${r.body.length}b)${c.reset}${usage}`);
-        res.writeHead(r.status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.writeHead(r.status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }); // NOSONAR - localhost-only proxy
         res.end(r.body);
         return;
       }
@@ -326,7 +326,7 @@ async function main() {
     }
 
     failedRequests++;
-    res.writeHead(lastStatus, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+    res.writeHead(lastStatus, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }); // NOSONAR - localhost-only proxy
     res.end(lastBody);
   });
 
